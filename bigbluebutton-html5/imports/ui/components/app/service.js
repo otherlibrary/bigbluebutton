@@ -1,78 +1,27 @@
-import { Meteor } from 'meteor/meteor';
-import Users from '/imports/api/users';
-import Chat from '/imports/api/chat';
-import Meetings from '/imports/api/meetings';
-import Cursor from '/imports/api/cursor';
-import Polls from '/imports/api/polls';
+import Breakouts from '/imports/api/breakouts';
+import Settings from '/imports/ui/services/settings';
+import Auth from '/imports/ui/services/auth/index';
 
-function setInStorage(key, value) {
-  if (!!value) {
-    console.log('in setInStorage', key, value);
-    localStorage.setItem(key, value);
-  }
+const getCaptionsStatus = () => {
+  const ccSettings = Settings.cc;
+  return ccSettings ? ccSettings.enabled : false;
 };
 
-function getInStorage(key) {
-  return localStorage.getItem(key);
+const getFontSize = () => {
+  const applicationSettings = Settings.application;
+  return applicationSettings ? applicationSettings.fontSize : '16px';
 };
 
-function setCredentials(nextState, replace) {
-  if (!!nextState && !!nextState.params) {
-    setInStorage('meetingID', nextState.params.meetingID);
-    setInStorage('userID', nextState.params.userID);
-    setInStorage('authToken', nextState.params.authToken);
-  }
-};
+const getBreakoutRooms = () => Breakouts.find().fetch();
 
-function subscribeForData() {
-  subscribeFor('users');
-
-  Meteor.setTimeout(() => {
-    subscribeFor('chat');
-    subscribeFor('cursor');
-    subscribeFor('deskshare');
-    subscribeFor('meetings');
-    subscribeFor('polls');
-    subscribeFor('presentations');
-    subscribeFor('shapes');
-    subscribeFor('slides');
-    subscribeFor('users');
-
-    window.Users = Users; // for debug purposes TODO remove
-    window.Chat = Chat; // for debug purposes TODO remove
-    window.Meetings = Meetings; // for debug purposes TODO remove
-    window.Cursor = Cursor; // for debug purposes TODO remove
-    window.Polls = Polls; // for debug purposes TODO remove
-  }, 2000); //To avoid race condition where we subscribe before receiving auth from BBB
-};
-
-function subscribeFor(collectionName) {
-  const credentials = {
-    meetingId: getInStorage('meetingID'),
-    requesterUserId: getInStorage('userID'),
-    requesterToken: getInStorage('authToken'),
-  };
-
-  // console.log("subscribingForData", collectionName, meetingID, userID, authToken);
-
-  Meteor.subscribe(collectionName, credentials, onError, onReady);
-};
-
-function onError(error, result) {
-  // console.log("OnError", error, result);
-};
-
-function onReady() {
-  // console.log("OnReady", Users.find().fetch());
-};
-
-function pollExists() {
-  return !!(Polls.findOne({}));
+function meetingIsBreakout() {
+  const breakouts = getBreakoutRooms();
+  return (breakouts && breakouts.some(b => b.breakoutId === Auth.meetingID));
 }
 
 export {
-  pollExists,
-  subscribeForData,
-  setCredentials,
-  getInStorage,
+  getCaptionsStatus,
+  getFontSize,
+  meetingIsBreakout,
+  getBreakoutRooms,
 };

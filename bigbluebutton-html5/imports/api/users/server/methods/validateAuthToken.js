@@ -1,34 +1,42 @@
-import { logger } from '/imports/startup/server/logger';
-import { redisConfig } from '/config';
-import { createDummyUser } from '/imports/api/users/server/modifiers/createDummyUser';
-import { publish } from '/imports/startup/server/helpers';
+import { Meteor } from 'meteor/meteor';
+import { check } from 'meteor/check';
+import RedisPubSub from '/imports/startup/server/redis';
+import Logger from '/imports/startup/server/logger';
+import Users from '/imports/api/users';
+import createDummyUser from '../modifiers/createDummyUser';
+import setConnectionIdAndAuthToken from '../modifiers/setConnectionIdAndAuthToken';
 
-Meteor.methods({
-  // Construct and send a message to bbb-web to validate the user
-  validateAuthToken(credentials) {
-    const { meetingId, requesterUserId, requesterToken } = credentials;
-    logger.info('sending a validate_auth_token with', {
-      userid: requesterUserId,
-      authToken: requesterToken,
-      meetingid: meetingId,
-    });
-    let message = {
-      payload: {
-        auth_token: requesterToken,
-        userid: requesterUserId,
-        meeting_id: meetingId,
-      },
-      header: {
-        timestamp: new Date().getTime(),
-        reply_to: `${meetingId}/${requesterUserId}`,
-        name: 'validate_auth_token',
-      },
-    };
-    if ((requesterToken != null) && (requesterUserId != null) && (meetingId != null)) {
-      createDummyUser(meetingId, requesterUserId, requesterToken);
-      return publish(redisConfig.channels.toBBBApps.meeting, message);
-    } else {
-      return logger.info('did not have enough information to send a validate_auth_token message');
-    }
-  },
-});
+export default function validateAuthToken(credentials) {
+  const REDIS_CONFIG = Meteor.settings.private.redis;
+  const CHANNEL = REDIS_CONFIG.channels.toAkkaApps;
+  const EVENT_NAME = 'ValidateAuthTokenReqMsg';
+
+  const { meetingId, requesterUserId, requesterToken } = credentials;
+
+  check(meetingId, String);
+  check(requesterUserId, String);
+  check(requesterToken, String);
+
+  const sessionId = `${meetingId}-${requesterUserId}`;
+  this.setUserId(sessionId);
+
+  const User = Users.findOne({
+    meetingId,
+    userId: requesterUserId,
+  });
+
+  if (!User) {
+    createDummyUser(meetingId, requesterUserId, requesterToken);
+  }
+
+  setConnectionIdAndAuthToken(meetingId, requesterUserId, this.connection.id, requesterToken);
+
+  const payload = {
+    userId: requesterUserId,
+    authToken: requesterToken,
+  };
+
+  Logger.info(`User '${requesterUserId}' is trying to validate auth token for meeting '${meetingId}'`);
+
+  return RedisPubSub.publishUserMessage(CHANNEL, EVENT_NAME, meetingId, requesterUserId, payload);
+}

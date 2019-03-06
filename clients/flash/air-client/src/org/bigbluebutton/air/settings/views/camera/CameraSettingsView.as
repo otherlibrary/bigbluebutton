@@ -1,51 +1,30 @@
 package org.bigbluebutton.air.settings.views.camera {
 	
-	import spark.components.Button;
-	import spark.components.Group;
-	import spark.components.Label;
-	import spark.components.List;
-	import spark.components.Scroller;
-	import spark.components.VideoDisplay;
+	import org.bigbluebutton.air.common.views.NoTabView;
+	import org.bigbluebutton.air.main.views.TopToolbarBase;
+	import org.bigbluebutton.air.settings.views.TopToolbarSubSettings;
 	
-	public class CameraSettingsView extends CameraSettingsViewBase implements ICameraSettingsView {
+	import spark.layouts.VerticalLayout;
+	
+	public class CameraSettingsView extends NoTabView {
 		
-		public function dispose():void {
+		private var _settingsView:CameraSettingsViewBase;
+		
+		public function CameraSettingsView() {
+			super();
+			
+			var vLayout:VerticalLayout = new VerticalLayout();
+			vLayout.gap = 0;
+			layout = vLayout;
+			
+			_settingsView = new CameraSettingsViewBase();
+			_settingsView.percentHeight = 100;
+			_settingsView.percentWidth = 100;
+			addElement(_settingsView);
 		}
 		
-		public function get startCameraButton():Button {
-			return startCameraButton0;
-		}
-		
-		public function get swapCameraButton():Button {
-			return swapCameraBtn0;
-		}
-		
-		public function get cameraProfilesList():List {
-			return cameraprofileslist;
-		}
-		
-		public function get previewVideo():VideoDisplay {
-			return previewvideo;
-		}
-		
-		public function get videoGroup():Group {
-			return videoGroup0;
-		}
-		
-		public function get settingsGroup():Group {
-			return settingsGroup0;
-		}
-		
-		public function get noVideoMessage():Label {
-			return noVideoMessage0;
-		}
-		
-		public function get cameraSettingsScroller():Scroller {
-			return cameraSettingsScroller0;
-		}
-		
-		public function get rotateCameraButton():Button {
-			return rotateCameraBtn0;
+		override protected function createToolbar():TopToolbarBase {
+			return new TopToolbarSubSettings();
 		}
 	}
 }

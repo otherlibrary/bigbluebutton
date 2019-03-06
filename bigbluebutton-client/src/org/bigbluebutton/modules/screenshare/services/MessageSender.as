@@ -18,30 +18,71 @@
  */
 package org.bigbluebutton.modules.screenshare.services
 {
+	import org.as3commons.logging.api.ILogger;
+	import org.as3commons.logging.api.getClassLogger;
+	import org.bigbluebutton.core.BBB;
+	import org.bigbluebutton.core.UsersUtil;
+	import org.bigbluebutton.core.managers.ConnectionManager;
 	import org.bigbluebutton.modules.screenshare.services.red5.Connection;
 
+    public class MessageSender
+    {	
+        private static const LOG:String = "SC::MessageSender - ";
+        private static const LOGGER:ILogger = getClassLogger(MessageSender);
+        private var conn: Connection;
+        
+        public function MessageSender(conn: Connection) {
+          this.conn = conn;  
+        }
+        
+        public function isScreenSharing(meetingId: String):void {
+          conn.isScreenSharing(meetingId);
+        }
+        
+        public function requestShareToken(meetingId: String, userId: String, record: Boolean, tunnel: Boolean):void {
+          conn.requestShareToken(meetingId, userId, record, tunnel);
+        }
+        
+        public function startShareRequest(meetingId: String, userId: String, session: String):void {
+          conn.startShareRequest(meetingId, userId, session);
+        }
+        
+        public function stopShareRequest(meetingId: String, streamId: String):void {
+          conn.stopShareRequest(meetingId, streamId);
+        }
+        
+        public function pauseShareRequest(meetingId: String, userId: String, streamId: String):void {
+          conn.pauseShareRequest(meetingId, userId, streamId);
+        }
 
-	public class MessageSender
-	{	
-    private static const LOG:String = "SC::MessageSender - ";	
-    private var conn: Connection;
-    
-    public function MessageSender(conn: Connection) {
-      this.conn = conn;  
-    }
-    
-    public function isScreenSharing(meetingId: String):void {
-      conn.isScreenSharing(meetingId);
-    }
-    
-    public function startShareRequest(meetingId: String, userId: String, record: Boolean):void {
-      conn.startShareRequest(meetingId, userId, record);
-    }
-    
-    public function stopShareRequest(meetingId: String, streamId: String):void {
-      conn.stopShareRequest(meetingId, streamId);
-    }
+        public function restartShareRequest(meetingId: String, userId: String):void {
+          conn.restartShareRequest(meetingId, userId);
+        }
+        
+        public function sendClientPongMessage(meetingId: String, session: String, timestamp: Number):void {
+          conn.sendClientPongMessage(meetingId, session, timestamp);
+        }
 
-					
-	}
+        public function queryForScreenshare():void {
+            var message:Object = {
+                header: {name: "GetScreenshareStatusReqMsg", meetingId: UsersUtil.getInternalMeetingID(),
+                    userId: UsersUtil.getMyUserID()},
+                body: {requestedBy: UsersUtil.getMyUserID()}
+            };
+
+            var _nc:ConnectionManager = BBB.initConnectionManager();
+            _nc.sendMessage2x(
+                    function(result:String):void { // On successful result
+                    },
+                    function(status:String):void { // status - On error occurred
+                        var logData:Object = UsersUtil.initLogData();
+                        logData.tags = ["apps"];
+                        logData.logCode = "error_sending_get_screenshare_status";
+                        LOGGER.info(JSON.stringify(logData));
+                    },
+                    message
+            ); //_netConnection.call
+        }
+
+    }
 }

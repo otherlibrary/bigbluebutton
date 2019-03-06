@@ -1,11 +1,13 @@
 package org.bigbluebutton.air.chat {
 	
-	import org.bigbluebutton.air.chat.views.chat.ChatViewMediator;
-	import org.bigbluebutton.air.chat.views.chat.IChatView;
-	import org.bigbluebutton.air.chat.views.chatrooms.ChatRoomsViewMediator;
-	import org.bigbluebutton.air.chat.views.chatrooms.IChatRoomsView;
-	import org.bigbluebutton.air.chat.views.selectparticipant.ISelectParticipantView;
-	import org.bigbluebutton.air.chat.views.selectparticipant.SelectParticipantViewMediator;
+	import org.bigbluebutton.air.chat.commands.RequestGroupChatHistoryCommand;
+	import org.bigbluebutton.air.chat.commands.RequestGroupChatHistorySignal;
+	import org.bigbluebutton.air.chat.commands.RequestWelcomeMessageCommand;
+	import org.bigbluebutton.air.chat.commands.RequestWelcomeMessageSignal;
+	import org.bigbluebutton.air.chat.commands.StartPrivateChatCommand;
+	import org.bigbluebutton.air.chat.commands.StartPrivateChatSignal;
+	import org.bigbluebutton.air.chat.views.ChatViewBase;
+	import org.bigbluebutton.air.chat.views.ChatViewMediator;
 	
 	import robotlegs.bender.extensions.mediatorMap.api.IMediatorMap;
 	import robotlegs.bender.extensions.signalCommandMap.api.ISignalCommandMap;
@@ -21,15 +23,20 @@ package org.bigbluebutton.air.chat {
 		
 		public function configure():void {
 			mediators();
+			signals();
 		}
 		
 		/**
 		 * Maps view mediators to views.
 		 */
 		private function mediators():void {
-			mediatorMap.map(IChatView).toMediator(ChatViewMediator);
-			mediatorMap.map(IChatRoomsView).toMediator(ChatRoomsViewMediator);
-			mediatorMap.map(ISelectParticipantView).toMediator(SelectParticipantViewMediator);
+			mediatorMap.map(ChatViewBase).toMediator(ChatViewMediator);
+		}
+		
+		private function signals():void {
+			signalCommandMap.map(RequestGroupChatHistorySignal).toCommand(RequestGroupChatHistoryCommand);
+			signalCommandMap.map(RequestWelcomeMessageSignal).toCommand(RequestWelcomeMessageCommand);
+			signalCommandMap.map(StartPrivateChatSignal).toCommand(StartPrivateChatCommand);
 		}
 	}
 }

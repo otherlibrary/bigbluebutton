@@ -1,7 +1,16 @@
-@import "imports/ui/stylesheets/variables/_all";
+@import "/imports/ui/stylesheets/variables/_all";
+@import "/imports/ui/stylesheets/variables/general";
+@import "/imports/ui/stylesheets/variables/palette";
+@import "/imports/ui/stylesheets/variables/typography";
 
-$navbar-height: 60px; // TODO: Change to NavBar real height
-$actionsbar-height: 50px; // TODO: Change to ActionsBar real height
+:root {
+  --navbar-height: 63px; // TODO: Change to NavBar real height
+  --actionsbar-height: 75px; // TODO: Change to ActionsBar real height
+  --bars-padding: calc(var(--lg-padding-x) - .45rem); // -.45 so user-list and chat title is aligned with the presentation title
+  --userlist-handle-width: 5px; // 5px so user-list and chat resize handle render as the same size
+  --poll-pane-min-width: 20em;
+  --panel-margin-left: 0.1em;
+}
 
 .main {
   position: relative;
@@ -13,10 +22,9 @@ $actionsbar-height: 50px; // TODO: Change to ActionsBar real height
 .navbar {
   position: relative;
   text-align: center;
-  z-index: 10;
 
   font-size: 1.5rem;
-  padding: .8rem 1rem;
+  padding: var(--bars-padding);
 }
 
 .wrapper {
@@ -24,6 +32,7 @@ $actionsbar-height: 50px; // TODO: Change to ActionsBar real height
   display: flex;
   flex: 1;
   flex-direction: column;
+  overflow: hidden;
 
   @include mq($medium-up) {
     flex-direction: row;
@@ -49,13 +58,9 @@ $actionsbar-height: 50px; // TODO: Change to ActionsBar real height
   }
 }
 
-
-
-.content {
+.content, .noPanelContent {
   @extend %full-page;
-
-  background-color: $color-background;
-  // position: relative;
+  order: 3;
 
   &:before,
   &:after {
@@ -65,7 +70,7 @@ $actionsbar-height: 50px; // TODO: Change to ActionsBar real height
     width: 100%;
     height: 50%;
     opacity: 0;
-    transition: opacity .3s;
+    transition: opacity calc(var(--enableAnimation) * .3s);
     pointer-events: none;
   }
 
@@ -79,57 +84,84 @@ $actionsbar-height: 50px; // TODO: Change to ActionsBar real height
     background: linear-gradient(to top, rgba(0, 0, 0, .45) -20%, transparent 20%);
   }
 
-  &:hover,
-  &:active {
-    &:before,
-    &:after {
-      opacity: 1;
-    }
-  }
-
   @include mq($medium-up) {
     flex: 5;
     order: 2;
   }
 }
 
+.content{
+  margin-left: var(--panel-margin-left);
+}
+
 .userList {
   @extend %full-page;
+  @extend %text-elipsis;
+
   z-index: 2;
+  overflow: visible;
+  order: 1;
 
   @include mq($small-only) {
-    padding-top: $navbar-height;
-  }
-
-  @include mq($small-only) {
-    padding-top: $navbar-height;
+    top: var(--navbar-height);
   }
 
   @include mq($medium-up) {
-    flex: 0 20vw;
+    flex: 0 15vw;
     order: 1;
   }
 
   @include mq($xlarge-up) {
-    flex-basis: 15vw;
+    flex-basis: 10vw;
   }
 }
 
+.userlistPad {
+  background-color: var(--color-off-white);
+  width: var(--userlist-handle-width);
+}
+
+.compact {
+  flex-basis: 4.6rem;
+}
+
+.poll,
+.breakoutRoom,
+.note,
 .chat {
   @extend %full-page;
-  z-index: 3;
 
+  order: 2;
+  height: 100%;
   @include mq($small-only) {
-    padding-top: $navbar-height;
+    z-index: 3;
+    height: auto;
+    top: var(--navbar-height);
+    overflow: visible;
   }
 
   @include mq($medium-up) {
-    flex: 0 20vw;
+    flex: 0 25vw;
     order: 1;
   }
 
   @include mq($xlarge-up) {
-    flex-basis: 15vw;
+    flex-basis: 20vw;
+  }
+}
+
+.poll {
+  background-color: var(--color-white);
+  min-width: var(--poll-pane-min-width);
+  padding: 1rem;
+}
+
+.breakoutRoom {
+  height: 100%;
+  width: 20vw;
+  background-color: var(--color-white);
+  @include mq($small-only) {
+    width: auto;
   }
 }
 
@@ -145,21 +177,35 @@ $actionsbar-height: 50px; // TODO: Change to ActionsBar real height
 
 .media {
   @extend %full-page;
-  flex: 1;
-  order: 1;
-
-  @include mq($small-only) {
-    padding-bottom: $actionsbar-height;
+  flex: 1 100%;
+  order: 2;
+  flex-direction: row;
+  position: relative;
+  margin-left: var(--panel-margin-right);
+  @include mq($portrait) {
+    flex-direction: column;
   }
 }
 
-.actionsbar {
+.closedCaptionBox {
   position: relative;
+  flex-basis: 15vw;
   order: 2;
 
-  @include mq($small-only) {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
+  @include mq($portrait) {
+    min-height: 35%;
   }
+}
+
+.closedCaptions {
+  order: 3;
+  flex-basis: 20%;
+  max-width: 20%;
+}
+
+.actionsbar {
+  flex: 1;
+  padding: var(--bars-padding);
+  position: relative;
+  order: 3;
 }

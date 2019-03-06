@@ -1,30 +1,34 @@
+import org.bigbluebutton.build._
+
 //enablePlugins(JavaServerAppPackaging)
 enablePlugins(JettyPlugin)
 
-name := "bbb-screenshare-akka"
+version := "0.0.3"
 
-organization := "org.bigbluebutton"
+val compileSettings = Seq(
+  organization := "org.bigbluebutton",
 
-version := "0.0.1"
-
-//scalaVersion  := "2.11.6"
-scalaVersion  := "2.11.7"
-
-scalacOptions ++= Seq(
-  "-unchecked",
-  "-deprecation",
-  "-Xlint",
-  "-Ywarn-dead-code",
-  "-language:_",
-  "-target:jvm-1.8", //TODO this was 1.7
-  "-encoding", "UTF-8"
+  scalacOptions ++= List(
+    "-unchecked",
+    "-deprecation",
+    "-Xlint",
+    "-Ywarn-dead-code",
+    "-language:_",
+    "-target:jvm-1.8",
+    "-encoding", "UTF-8"
+  ),
+  javacOptions ++= List(
+    "-Xlint:unchecked",
+    "-Xlint:deprecation"
+  )
 )
 
 resolvers ++= Seq(
   "spray repo" at "http://repo.spray.io/",
-  "rediscala" at "http://dl.bintray.com/etaty/maven",
   "blindside-repos" at "http://blindside.googlecode.com/svn/repository/"
 )
+
+resolvers += Resolver.sonatypeRepo("releases")
 
 publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/dev/repo/maven-repo/releases" )) )
 
@@ -33,40 +37,12 @@ publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/d
 // into eclipse.
 retrieveManaged := true
 
-libraryDependencies ++= {
-//  val akkaVersion  = "2.3.11"
-    val akkaVersion  = "2.4.2"
-    val springVersion = "4.2.5.RELEASE"
-  Seq(
-    "com.typesafe.akka"        %%  "akka-actor"        % akkaVersion,
-    "com.typesafe.akka"        %%  "akka-testkit"      % akkaVersion    % "test",
-    "com.typesafe.akka"        %%  "akka-slf4j"        % akkaVersion,
-    "com.typesafe"              %  "config"            % "1.3.0",
-    "ch.qos.logback"            %  "logback-classic"   % "1.1.6" % "runtime",
-    //    "org.pegdown"               %  "pegdown"           % "1.4.0",
-    //    "junit"                     %  "junit"             % "4.11",
-    //    "com.etaty.rediscala"      %%  "rediscala"         % "1.4.0",
-    "commons-codec"             %  "commons-codec"     % "1.8",
-        "redis.clients"             %  "jedis"             % "2.7.2",
-    //    "org.apache.commons"        %  "commons-lang3"     % "3.2",
-    "org.red5"                  %  "red5-server"       % "1.0.7-M10",
-    "com.google.code.gson"      %  "gson"              % "1.7.1",
+testOptions in Test += Tests.Argument(TestFrameworks.Specs2, "html", "console", "junitxml")
 
-    "org.springframework"       %  "spring-web"        % springVersion,
-    "org.springframework"       %  "spring-beans"      % springVersion,
-    "org.springframework"       %  "spring-context"    % springVersion,
-    "org.springframework"       %  "spring-core"       % springVersion,
-    "org.springframework"       %  "spring-webmvc"     % springVersion,
-    "org.springframework"       %  "spring-aop"        % springVersion,
-    "javax.servlet"             %  "servlet-api"       % "2.5"
+testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-h", "target/scalatest-reports")
 
-
-  )}
-
-//seq(Revolver.settings: _*)
-//
-//scalariformSettings
-
+Seq(Revolver.settings: _*)
+lazy val bbbScreenshareAkka = (project in file(".")).settings(name := "bbb-screenshare-akka", libraryDependencies ++= Dependencies.runtime).settings(compileSettings)
 
 //-----------
 // Packaging
@@ -92,4 +68,3 @@ daemonUser in Linux := user
 
 // group which will execute the application
 daemonGroup in Linux := group
-

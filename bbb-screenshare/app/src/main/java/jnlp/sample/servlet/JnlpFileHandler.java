@@ -41,6 +41,8 @@ import java.io.*;
 import javax.servlet.*;
 import javax.servlet.http.*;
 import javax.xml.parsers.*;
+
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.xml.sax.*;
 import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
@@ -310,14 +312,27 @@ public class JnlpFileHandler {
     ScreenShareInfo sInfo =  configurator.getScreenShareInfo(meetingId, authToken);
     String publishUrl = "unknown";
     String streamId = "unknown";
+    String session = "none";
     if (sInfo == null) {
       errorMessage = "ERROR_GETTING_INFO_USING_TOKEN";
     } else {
-      publishUrl = sInfo.publishUrl;
+
+      System.out.println("********* URL=" + sInfo.publishUrl);
+      if (sInfo.tunnel) {
+        publishUrl = sInfo.publishUrl.replaceFirst("rtmp","rtmpt");
+      } else {
+        publishUrl = sInfo.publishUrl;
+      }
+
       streamId = sInfo.streamId;
+      session = sInfo.session;
     }
-    
+
+
+    System.out.println("********* URL=" + publishUrl);
+
     String jnlpUrl = configurator.getJnlpUrl();
+    Boolean useH264 = configurator.isUseH264();
     
     String codecOptions = configurator.getCodecOptions();
     log.debug("Codec Options = [" + codecOptions + "]");
@@ -332,8 +347,10 @@ public class JnlpFileHandler {
     jnlpTemplate = substitute(jnlpTemplate, "$$publishUrl",  publishUrl);
     jnlpTemplate = substitute(jnlpTemplate, "$$fullScreen",  fullScreen);
     jnlpTemplate = substitute(jnlpTemplate, "$$meetingId",  meetingId);
+    jnlpTemplate = substitute(jnlpTemplate, "$$session",  session);
     jnlpTemplate = substitute(jnlpTemplate, "$$streamId",  streamId);
     jnlpTemplate = substitute(jnlpTemplate, "$$codecOptions",  codecOptions);
+    jnlpTemplate = substitute(jnlpTemplate, "$$useH264",  useH264.toString());
     jnlpTemplate = substitute(jnlpTemplate, "$$errorMessage",  errorMessage);
     // fix for 5039951: Add $$hostname macro
     jnlpTemplate = substitute(jnlpTemplate, "$$hostname",  request.getServerName());
@@ -341,9 +358,10 @@ public class JnlpFileHandler {
     jnlpTemplate = substitute(jnlpTemplate, "$$context", urlprefix + request.getContextPath());
     // fix for 6256326: add $$site macro to sample jnlp servlet
     jnlpTemplate = substitute(jnlpTemplate, "$$site", urlprefix);
-    
-    
-    log.debug(jnlpTemplate);
+
+
+    System.out.println("JNLP Response: " + jnlpTemplate);
+
     return jnlpTemplate;
   }
 

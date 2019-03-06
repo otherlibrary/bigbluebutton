@@ -1,130 +1,61 @@
 package org.bigbluebutton.air.presentation.views {
-	
-	import flash.display.StageOrientation;
-	import flash.media.Video;
-	import flash.net.NetConnection;
 	import flash.system.ApplicationDomain;
 	import flash.system.LoaderContext;
 	
 	import mx.controls.SWFLoader;
-	import mx.core.FlexGlobals;
+	
+	import org.bigbluebutton.air.presentation.models.Slide;
+	import org.bigbluebutton.air.whiteboard.views.WhiteboardCanvas;
 	
 	import spark.components.Group;
-	import spark.components.Label;
-	import spark.components.VideoDisplay;
 	
-	import org.bigbluebutton.air.video.views.videochat.VideoChatVideoView;
-	import org.bigbluebutton.lib.presentation.models.Slide;
-	import org.bigbluebutton.lib.whiteboard.views.WhiteboardCanvas;
-	
-	public class PresentationView extends PresentationViewBase implements IPresentationViewAir {
-		private var webcam:VideoChatVideoView;
-		
-		public function get videoStream():VideoDisplay {
-			return videostream;
-		}
-		
-		public function get showSharedCams():Label {
-			return showSharedCams0;
-		}
-		
-		public function get showSharedCamsGroup():Group {
-			return showSharedCamsGroup0;
-		}
-		
-		public function get content():Group {
-			return content0;
-		}
+	public class PresentationView extends Group {
+		private var _viewport:Group;
 		
 		public function get viewport():Group {
-			return viewport0;
+			return _viewport;
 		}
 		
-		public function get slide():SWFLoader {
-			return slide0;
+		private var _swfLoader:SWFLoader;
+		
+		public function get swfLoader():SWFLoader {
+			return _swfLoader;
 		}
 		
-		public function get whiteboardCanvas():WhiteboardCanvas {
-			return whiteboardCanvas0;
+		private var _wbCanvas:WhiteboardCanvas;
+		
+		public function get wbCanvas():WhiteboardCanvas {
+			return _wbCanvas;
 		}
 		
-		public function setPresentationName(name:String):void {
-			FlexGlobals.topLevelApplication.topActionBar.pageName.text = name;
+		public function PresentationView() {
+			super();
+			
+			_viewport = new Group();
+			_viewport.percentWidth = 100;
+			_viewport.percentHeight = 100;
+			_viewport.clipAndEnableScrolling = true;
+			addElement(_viewport);
+			
+			_swfLoader = new SWFLoader();
+			_swfLoader.percentWidth = 100;
+			_swfLoader.percentHeight = 100;
+			_swfLoader.scaleContent = true;
+			_viewport.addElement(_swfLoader);
+			
+			_wbCanvas = new WhiteboardCanvas();
+			_viewport.addElement(_wbCanvas);
 		}
 		
 		public function setSlide(s:Slide):void {
 			if (s != null) {
 				var context:LoaderContext = new LoaderContext(false, ApplicationDomain.currentDomain, null);
 				context.allowCodeImport = true;
-				slide.loaderContext = context;
-				slide.source = s.SWFFile.source;
+				_swfLoader.loaderContext = context;
+				_swfLoader.source = s.SWFFile.source;
 			} else {
-				slide.source = null;
+				_swfLoader.source = null;
 			}
-		}
-		
-		override public function rotationHandler(rotation:String):void {
-			switch (rotation) {
-				case StageOrientation.ROTATED_LEFT:
-					viewport.rotation = -90;
-					viewport.scaleX = viewport.scaleY = slide.height / slide.width;
-					break;
-				case StageOrientation.ROTATED_RIGHT:
-					viewport.rotation = 90;
-					viewport.scaleX = viewport.scaleY = slide.height / slide.width;
-					break;
-				case StageOrientation.UPSIDE_DOWN:
-					viewport.rotation = 180;
-					viewport.scaleX = viewport.scaleY = 1;
-					break;
-				case StageOrientation.DEFAULT:
-				case StageOrientation.UNKNOWN:
-				default:
-					viewport.rotation = 0;
-					viewport.scaleX = viewport.scaleY = 1;
-			}
-		}
-		
-		public function startStream(connection:NetConnection, name:String, streamName:String, userID:String, width:Number, height:Number, screenHeight:Number, screenWidth:Number):void {
-			if (webcam) {
-				stopStream();
-			}
-			webcam = new VideoChatVideoView();
-			webcam.percentWidth = 100;
-			webcam.percentHeight = 100;
-			videoStream.addChild(webcam.videoViewVideo);
-			this.videoGroup0.addElement(webcam);
-			var topActionBarHeight:Number = FlexGlobals.topLevelApplication.topActionBar.height;
-			var bottomMenuHeight:Number = FlexGlobals.topLevelApplication.bottomMenu.height;
-			webcam.initializeScreenSizeValues(width, height, screenHeight, screenWidth, topActionBarHeight, bottomMenuHeight);
-			webcam.startStream(connection, name, streamName, userID);
-			webcam.setVideoPosition(name);
-		}
-		
-		public function stopStream():void {
-			if (webcam) {
-				webcam.close();
-				if (this.videoGroup0.containsElement(webcam)) {
-					this.videoGroup0.removeElement(webcam);
-				}
-				webcam = null;
-			}
-		}
-		
-		public function get video():Video {
-			if (webcam) {
-				return webcam.videoViewVideo;
-			} else {
-				return null;
-			}
-		}
-		
-		public function get videoGroup():Group {
-			return videoGroup0;
-		}
-		
-		public function dispose():void {
-			stopStream();
 		}
 	}
 }

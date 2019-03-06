@@ -1,17 +1,32 @@
-$color-white: #F3F6F9 !default;
+:root {
+  --color-white: #FFF;
+  --color-off-white: #F3F6F9;
 
-$color-gray: #353B42 !default;
-$color-gray-dark: #2A2D33 !default;
-$color-gray-light: #8B9AA8 !default;
+  --color-black: #000000;
+  --color-gray: #4E5A66;
+  --color-gray-dark: #06172A;
+  --color-gray-light: #8B9AA8;
+  --color-gray-lighter: #a7b3bd;
+  --color-gray-lightest: #d4d9df;
 
-$color-primary: #299AD5 !default;
-$color-success: #4DC0A2 !default;
-$color-danger: #F0615F !default;
+  --color-blue-light: #54a1f3;
+  --color-blue-lighter: #92BCEA;
+  --color-blue-lightest: #E4ECF2;
 
-$color-background: #2A2D36 !default;
+  --color-primary: #0F70D7;
+  --color-success: #008081;
+  --color-danger: #DF2721;
+  --color-warning: purple;
 
-$color-text: #8A95A5 !default;
-$color-heading: #4E525E !default;
+  --color-background: var(--color-gray-dark);
 
-$color-link: #3E9DD6 !default;
-$color-link-hover: darken($color-link, 15%) !default;
+  --color-text: var(--color-gray);
+  --color-heading: var(--color-gray-dark);
+
+  --color-link: var(--color-primary);
+  --color-link-hover: #2687ef;
+
+  --color-gray-label: var(--color-gray);
+
+  --color-transparent: #ff000000;
+}

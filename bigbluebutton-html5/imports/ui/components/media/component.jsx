@@ -1,54 +1,54 @@
-import React, { Component, PropTypes } from 'react';
-import styles from './styles.scss';
-import { FormattedMessage, FormattedDate } from 'react-intl';
+import React, { Component } from 'react';
+import PropTypes from 'prop-types';
+import cx from 'classnames';
+import VideoProviderContainer from '/imports/ui/components/video-provider/container';
+
+import { styles } from './styles';
 
 const propTypes = {
-  content: PropTypes.element.isRequired,
-  overlay: PropTypes.element,
+  children: PropTypes.element.isRequired,
+  floatingOverlay: PropTypes.bool,
+  hideOverlay: PropTypes.bool,
 };
 
+const defaultProps = {
+  floatingOverlay: false,
+  hideOverlay: true,
+};
+
+
 export default class Media extends Component {
-  renderContent() {
-    const { content } = this.props;
-
-    return (
-      <div className={styles.contentWrapper}>
-        <div className={styles.contentRatio}>
-          <div className={styles.content}>
-            {content}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  renderOverlay() {
-    const { overlay } = this.props;
-
-    if (overlay) {
-      return (
-        <div className={styles.overlayWrapper}>
-          <div className={styles.overlayRatio}>
-            <div className={styles.overlay}>
-              {overlay}
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    return false;
+  componentWillUpdate() {
+    window.dispatchEvent(new Event('resize'));
   }
 
   render() {
+    const {
+      swapLayout, floatingOverlay, hideOverlay, disableVideo, children,
+    } = this.props;
+
+    const contentClassName = cx({
+      [styles.content]: true,
+    });
+
+    const overlayClassName = cx({
+      [styles.overlay]: true,
+      [styles.hideOverlay]: hideOverlay,
+      [styles.floatingOverlay]: floatingOverlay,
+    });
+
     return (
       <div className={styles.container}>
-        {this.props.children}
-        {this.renderContent()}
-        {this.renderOverlay()}
+        <div className={!swapLayout ? contentClassName : overlayClassName}>
+          {children}
+        </div>
+        <div className={!swapLayout ? overlayClassName : contentClassName}>
+          { !disableVideo ? <VideoProviderContainer /> : null }
+        </div>
       </div>
     );
   }
 }
 
 Media.propTypes = propTypes;
+Media.defaultProps = defaultProps;

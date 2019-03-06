@@ -29,7 +29,7 @@ import org.bigbluebutton.freeswitch.voice.freeswitch.actions.EjectUserCommand;
 import org.bigbluebutton.freeswitch.voice.freeswitch.actions.GetAllUsersCommand;
 import org.bigbluebutton.freeswitch.voice.freeswitch.actions.MuteUserCommand;
 import org.bigbluebutton.freeswitch.voice.freeswitch.actions.RecordConferenceCommand;
-import org.bigbluebutton.freeswitch.voice.freeswitch.actions.TransferUsetToMeetingCommand;
+import org.bigbluebutton.freeswitch.voice.freeswitch.actions.TransferUserToMeetingCommand;
 import org.bigbluebutton.freeswitch.voice.freeswitch.actions.*;
 import org.freeswitch.esl.client.inbound.Client;
 import org.freeswitch.esl.client.inbound.InboundConnectionFailure;
@@ -120,15 +120,13 @@ public class ConnectionManager {
 	}
 
 	public void mute(MuteUserCommand mpc) {
-		System.out.println("Got mute request from FSApplication.");
 		Client c = manager.getESLClient();
 		if (c.canSend()) {
-			System.out.println("Issuing command to FS ESL.");
 			c.sendAsyncApiCommand(mpc.getCommand(), mpc.getCommandArgs());
 		}
 	}
 
-	public void tranfer(TransferUsetToMeetingCommand tutmc) {
+	public void tranfer(TransferUserToMeetingCommand tutmc) {
 		Client c = manager.getESLClient();
 		if (c.canSend()) {
 			c.sendAsyncApiCommand(tutmc.getCommand(), tutmc.getCommandArgs());
@@ -158,19 +156,17 @@ public class ConnectionManager {
 		}
 	}
 
-	public void broadcastRTMP(DeskShareBroadcastRTMPCommand rtmp) {
+	public void broadcastRTMP(ScreenshareBroadcastRTMPCommand rtmp) {
 		Client c = manager.getESLClient();
 		if (c.canSend()) {
-			System.out.println("ConnectionManager: send to FS: broadcastRTMP "  + rtmp.getCommandArgs());
 			EslMessage response = c.sendSyncApiCommand(rtmp.getCommand(), rtmp.getCommandArgs());
 			rtmp.handleResponse(response, conferenceEventListener);
 		}
 	}
 
-	public void hangUp(DeskShareHangUpCommand huCmd) {
+	public void hangUp(ScreenshareHangUpCommand huCmd) {
 		Client c = manager.getESLClient();
 		if (c.canSend()) {
-			System.out.println("ConnectionManager: send to FS: hangUp " + huCmd.getCommandArgs());
 			EslMessage response = c.sendSyncApiCommand(huCmd.getCommand(), huCmd.getCommandArgs());
 			huCmd.handleResponse(response, conferenceEventListener);
 		}
