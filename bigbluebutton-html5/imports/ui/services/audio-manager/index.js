@@ -1,6 +1,5 @@
 import { Tracker } from 'meteor/tracker';
 import { makeCall } from '/imports/ui/services/api';
-import VertoBridge from '/imports/api/audio/client/bridge/verto';
 import KurentoBridge from '/imports/api/audio/client/bridge/kurento';
 import Auth from '/imports/ui/services/auth';
 import VoiceUsers from '/imports/api/voice-users';
@@ -13,7 +12,6 @@ import { tryGenerateIceCandidates } from '../../../utils/safari-webrtc';
 
 const MEDIA = Meteor.settings.public.media;
 const MEDIA_TAG = MEDIA.mediaTag;
-const USE_SIP = MEDIA.useSIPAudio;
 const ECHO_TEST_NUMBER = MEDIA.echoTestNumber;
 const MAX_LISTEN_ONLY_RETRIES = 1;
 
@@ -21,6 +19,7 @@ const CALL_STATES = {
   STARTED: 'started',
   ENDED: 'ended',
   FAILED: 'failed',
+  RECONNECTING: 'reconnecting',
 };
 
 class AudioManager {
@@ -48,7 +47,7 @@ class AudioManager {
   }
 
   init(userData) {
-    this.bridge = USE_SIP ? new SIPBridge(userData) : new VertoBridge(userData);
+    this.bridge = new SIPBridge(userData); // no alternative as of 2019-03-08
     if (this.useKurento) {
       this.listenOnlyBridge = new KurentoBridge(userData);
     }
@@ -83,6 +82,12 @@ class AudioManager {
   }
 
   askDevicesPermissions() {
+    // Check to see if the stream has already been retrieved becasue then we don't need to
+    // request. This is a fix for an issue with the input device selector.
+    if (this.inputStream) {
+      return Promise.resolve();
+    }
+
     // Only change the isWaitingPermissions for the case where the user didnt allowed it yet
     const permTimeout = setTimeout(() => {
       if (!this.devicesInitialized) { this.isWaitingPermissions = true; }
@@ -109,35 +114,38 @@ class AudioManager {
     this.isListenOnly = false;
     this.isEchoTest = false;
 
-    const callOptions = {
-      isListenOnly: false,
-      extension: null,
-      inputStream: this.inputStream,
-    };
-
     return this.askDevicesPermissions()
       .then(this.onAudioJoining.bind(this))
-      .then(() => this.bridge.joinAudio(callOptions, this.callStateCallback.bind(this)));
+      .then(() => {
+        const callOptions = {
+          isListenOnly: false,
+          extension: null,
+          inputStream: this.inputStream,
+        };
+        return this.bridge.joinAudio(callOptions, this.callStateCallback.bind(this));
+      });
   }
 
   joinEchoTest() {
     this.isListenOnly = false;
     this.isEchoTest = true;
 
-    const callOptions = {
-      isListenOnly: false,
-      extension: ECHO_TEST_NUMBER,
-      inputStream: this.inputStream,
-    };
-
     return this.askDevicesPermissions()
       .then(this.onAudioJoining.bind(this))
-      .then(() => this.bridge.joinAudio(callOptions, this.callStateCallback.bind(this)));
+      .then(() => {
+        const callOptions = {
+          isListenOnly: false,
+          extension: ECHO_TEST_NUMBER,
+          inputStream: this.inputStream,
+        };
+        return this.bridge.joinAudio(callOptions, this.callStateCallback.bind(this));
+      });
   }
 
   async joinListenOnly(retries = 0) {
     this.isListenOnly = true;
     this.isEchoTest = false;
+
     const { name } = browser();
     // The kurento bridge isn't a full audio bridge yet, so we have to differ it
     const bridge = this.useKurento ? this.listenOnlyBridge : this.bridge;
@@ -176,7 +184,7 @@ class AudioManager {
         clearTimeout(iceGatheringTimeout);
       }
 
-      logger.error({ logCode: 'audiomanager_listenonly_error' }, 'Listen only error:', err, 'on try', retries);
+      logger.error({ logCode: 'audiomanager_listenonly_error' }, `Listen only error:${JSON.stringify(err)} on try ${retries}`);
       throw {
         type: 'MEDIA_ERROR',
         message: this.messages.error.MEDIA_ERROR,
@@ -224,7 +232,6 @@ class AudioManager {
     const bridge = (this.useKurento && this.isListenOnly) ? this.listenOnlyBridge : this.bridge;
 
     this.isHangingUp = true;
-    this.isEchoTest = false;
 
     return bridge.exitAudio();
   }
@@ -289,8 +296,12 @@ class AudioManager {
     }
 
     if (!this.error && !this.isEchoTest) {
-      this.notify(this.intl.formatMessage(this.messages.info.LEFT_AUDIO));
+      this.notify(this.intl.formatMessage(this.messages.info.LEFT_AUDIO), false, 'audio_off');
     }
+    if (!this.isEchoTest) {
+      this.playHangUpSound();
+    }
+
     window.parent.postMessage({ response: 'notInAudio' }, '*');
   }
 
@@ -300,28 +311,36 @@ class AudioManager {
         STARTED,
         ENDED,
         FAILED,
+        RECONNECTING,
       } = CALL_STATES;
 
       const {
         status,
         error,
         bridgeError,
+        silenceNotifications,
       } = response;
 
       if (status === STARTED) {
         this.onAudioJoin();
         resolve(STARTED);
       } else if (status === ENDED) {
-        logger.debug({ logCode: 'audio_ended' }, 'Audio ended without issue');
+        logger.info({ logCode: 'audio_ended' }, 'Audio ended without issue');
         this.onAudioExit();
       } else if (status === FAILED) {
         const errorKey = this.messages.error[error] || this.messages.error.GENERIC_ERROR;
         const errorMsg = this.intl.formatMessage(errorKey, { 0: bridgeError });
         this.error = !!error;
-        this.notify(errorMsg, true);
-        logger.error({ logCode: 'audio_failure', error, cause: bridgeError }, 'Audio Error:', error, bridgeError);
-        this.exitAudio();
-        this.onAudioExit();
+        logger.error({ logCode: 'audio_failure', error, cause: bridgeError }, `Audio Error ${JSON.stringify(errorMsg)}`);
+        if (silenceNotifications !== true) {
+          this.notify(errorMsg, true);
+          this.exitAudio();
+          this.onAudioExit();
+        }
+      } else if (status === RECONNECTING) {
+        logger.info({ logCode: 'audio_reconnecting' }, 'Attempting to reconnect audio');
+        this.notify(this.intl.formatMessage(this.messages.info.RECONNECTING_AUDIO), true);
+        this.playHangUpSound();
       }
     });
   }
@@ -411,11 +430,18 @@ class AudioManager {
     return this._userData;
   }
 
-  notify(message, error = false) {
+  playHangUpSound() {
+    this.alert = new Audio(`${Meteor.settings.public.app.cdn + Meteor.settings.public.app.basename}/resources/sounds/LeftCall.mp3`);
+    this.alert.play();
+  }
+
+  notify(message, error = false, icon = 'unmute') {
+    const audioIcon = this.isListenOnly ? 'listen' : icon;
+
     notify(
       message,
       error ? 'error' : 'info',
-      this.isListenOnly ? 'audio_on' : 'unmute',
+      audioIcon,
     );
   }
 }

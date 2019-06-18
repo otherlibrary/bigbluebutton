@@ -31,9 +31,12 @@ const mapUser = (user) => {
     isOnline: user.connectionStatus === 'online',
     clientType: user.clientType,
     loginTime: user.loginTime,
+    effectiveConnectionType: user.effectiveConnectionType,
+    externalUserId: user.extId,
+    isBreakoutUser: user.breakoutProps.isBreakoutUser,
   };
 
-  mappedUser.isLocked = user.locked && !(mappedUser.isPresenter || mappedUser.isModerator);
+  mappedUser.isLocked = user.locked && !mappedUser.isModerator;
 
   return mappedUser;
 };

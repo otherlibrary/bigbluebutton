@@ -2,6 +2,9 @@ import { withTracker } from 'meteor/react-meteor-data';
 import PropTypes from 'prop-types';
 import Auth from '/imports/ui/services/auth';
 import Service from '/imports/ui/components/actions-bar/service';
+import userListService from '/imports/ui/components/user-list/service';
+import { defineMessages, injectIntl, intlShape } from 'react-intl';
+import { notify } from '/imports/ui/services/notification';
 import UserOptions from './component';
 
 const propTypes = {
@@ -13,7 +16,15 @@ const propTypes = {
   currentUser: PropTypes.shape({
     isModerator: PropTypes.bool.isRequired,
   }).isRequired,
+  intl: intlShape.isRequired,
 };
+
+const intlMessages = defineMessages({
+  clearStatusMessage: {
+    id: 'app.userList.content.participants.options.clearedStatus',
+    description: 'Used in toast notification when emojis have been cleared',
+  },
+});
 
 const UserOptionsContainer = withTracker((props) => {
   const {
@@ -22,26 +33,33 @@ const UserOptionsContainer = withTracker((props) => {
     setEmojiStatus,
     muteAllExceptPresenter,
     muteAllUsers,
+    intl,
   } = props;
+
+  const toggleStatus = () => {
+    users.forEach(id => setEmojiStatus(id, 'none'));
+    notify(
+      intl.formatMessage(intlMessages.clearStatusMessage), 'info', 'clear_status',
+    );
+  };
 
   return {
     toggleMuteAllUsers: () => muteAllUsers(Auth.userID),
     toggleMuteAllUsersExceptPresenter: () => muteAllExceptPresenter(Auth.userID),
-    toggleStatus: () => users.forEach(id => setEmojiStatus(id, 'none')),
+    toggleStatus,
     isMeetingMuted: meeting.voiceProp.muteOnStart,
     isUserPresenter: Service.isUserPresenter(),
     isUserModerator: Service.isUserModerator(),
-    createBreakoutRoom: Service.createBreakoutRoom,
     meetingIsBreakout: Service.meetingIsBreakout(),
-    hasBreakoutRoom: Service.hasBreakoutRoom(),
-    meetingName: Service.meetingName(),
-    users: Service.users(),
-    getBreakouts: Service.getBreakouts,
-    sendInvitation: Service.sendInvitation,
     getUsersNotAssigned: Service.getUsersNotAssigned,
+    hasBreakoutRoom: Service.hasBreakoutRoom(),
+    isBreakoutEnabled: Service.isBreakoutEnabled(),
+    isBreakoutRecordable: Service.isBreakoutRecordable(),
+    users: Service.users(),
+    userListService,
   };
 })(UserOptions);
 
 UserOptionsContainer.propTypes = propTypes;
 
-export default UserOptionsContainer;
+export default injectIntl(UserOptionsContainer);

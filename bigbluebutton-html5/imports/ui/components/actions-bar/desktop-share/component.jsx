@@ -15,12 +15,18 @@ const propTypes = {
   handleUnshareScreen: PropTypes.func.isRequired,
   isVideoBroadcasting: PropTypes.bool.isRequired,
   screenSharingCheck: PropTypes.bool.isRequired,
+  screenShareEndAlert: PropTypes.func.isRequired,
+  screenshareDataSavingSetting: PropTypes.bool.isRequired,
 };
 
 const intlMessages = defineMessages({
   desktopShareLabel: {
     id: 'app.actionsBar.actionsDropdown.desktopShareLabel',
     description: 'Desktop Share option label',
+  },
+  lockedDesktopShareLabel: {
+    id: 'app.actionsBar.actionsDropdown.lockedDesktopShareLabel',
+    description: 'Desktop locked Share option label',
   },
   stopDesktopShareLabel: {
     id: 'app.actionsBar.actionsDropdown.stopDesktopShareLabel',
@@ -41,10 +47,10 @@ const intlMessages = defineMessages({
 });
 
 const BROWSER_RESULTS = browser();
-const isMobileBrowser = (BROWSER_RESULTS ? BROWSER_RESULTS.mobile : false) ||
-  (BROWSER_RESULTS && BROWSER_RESULTS.os ?
-    BROWSER_RESULTS.os.includes('Android') : // mobile flag doesn't always work
-    false);
+const isMobileBrowser = (BROWSER_RESULTS ? BROWSER_RESULTS.mobile : false)
+  || (BROWSER_RESULTS && BROWSER_RESULTS.os
+    ? BROWSER_RESULTS.os.includes('Android') // mobile flag doesn't always work
+    : false);
 
 const ICE_CONNECTION_FAILED = 'ICE connection failed';
 
@@ -55,6 +61,8 @@ const DesktopShare = ({
   isVideoBroadcasting,
   isUserPresenter,
   screenSharingCheck,
+  screenShareEndAlert,
+  screenshareDataSavingSetting,
 }) => {
   const onFail = (error) => {
     switch (error) {
@@ -66,23 +74,35 @@ const DesktopShare = ({
       default:
         logger.error({ logCode: 'desktopshare_default_error' }, error || 'Default error handler');
     }
+    screenShareEndAlert();
   };
-  return (screenSharingCheck && !isMobileBrowser && isUserPresenter ?
-    <Button
-      className={cx(styles.button, isVideoBroadcasting || styles.btn)}
-      icon={isVideoBroadcasting ? 'desktop' : 'desktop_off'}
-      label={intl.formatMessage(isVideoBroadcasting ?
-          intlMessages.stopDesktopShareLabel : intlMessages.desktopShareLabel)}
-      description={intl.formatMessage(isVideoBroadcasting ?
-          intlMessages.stopDesktopShareDesc : intlMessages.desktopShareDesc)}
-      color={isVideoBroadcasting ? 'primary' : 'default'}
-      ghost={!isVideoBroadcasting}
-      hideLabel
-      circle
-      size="lg"
-      onClick={isVideoBroadcasting ? handleUnshareScreen : () => handleShareScreen(onFail)}
-      id={isVideoBroadcasting ? 'unshare-screen-button' : 'share-screen-button'}
-    />
+
+  const screenshareLocked = screenshareDataSavingSetting
+    ? intlMessages.desktopShareLabel : intlMessages.lockedDesktopShareLabel;
+
+  const vLabel = isVideoBroadcasting
+    ? intlMessages.stopDesktopShareLabel : screenshareLocked;
+
+  const vDescr = isVideoBroadcasting
+    ? intlMessages.stopDesktopShareDesc : intlMessages.desktopShareDesc;
+
+  return (screenSharingCheck && !isMobileBrowser && isUserPresenter
+    ? (
+      <Button
+        className={cx(styles.button, isVideoBroadcasting || styles.btn)}
+        icon={isVideoBroadcasting ? 'desktop' : 'desktop_off'}
+        label={intl.formatMessage(vLabel)}
+        description={intl.formatMessage(vDescr)}
+        color={isVideoBroadcasting ? 'primary' : 'default'}
+        ghost={!isVideoBroadcasting}
+        hideLabel
+        circle
+        size="lg"
+        onClick={isVideoBroadcasting ? handleUnshareScreen : () => handleShareScreen(onFail)}
+        id={isVideoBroadcasting ? 'unshare-screen-button' : 'share-screen-button'}
+        disabled={!screenshareDataSavingSetting}
+      />
+    )
     : null);
 };
 

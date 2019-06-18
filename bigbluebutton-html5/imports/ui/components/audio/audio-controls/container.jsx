@@ -3,10 +3,7 @@ import { withTracker } from 'meteor/react-meteor-data';
 import { withModalMounter } from '/imports/ui/components/modal/service';
 import AudioManager from '/imports/ui/services/audio-manager';
 import { makeCall } from '/imports/ui/services/api';
-import Users from '/imports/api/users/';
-import Meetings from '/imports/api/meetings';
-import mapUser from '/imports/ui/services/user/mapUser';
-import Auth from '/imports/ui/services/auth';
+import lockContextContainer from '/imports/ui/components/lock-viewers/context/container';
 import AudioControls from './component';
 import AudioModalContainer from '../audio-modal/container';
 import Service from '../service';
@@ -35,16 +32,16 @@ const processToggleMuteFromOutside = (e) => {
   }
 };
 
-export default withModalMounter(withTracker(({ mountModal }) => ({
+export default lockContextContainer(withModalMounter(withTracker(({ mountModal, userLocks }) => ({
   processToggleMuteFromOutside: arg => processToggleMuteFromOutside(arg),
-  mute: Service.isConnected() && !Service.isListenOnly() && !Service.isEchoTest(),
-  unmute: Service.isConnected() && !Service.isListenOnly() && Service.isMuted(),
-  join: Service.isConnected() && !Service.isEchoTest(),
+  showMute: Service.isConnected() && !Service.isListenOnly() && !Service.isEchoTest() && !userLocks.userMic,
+  muted: Service.isConnected() && !Service.isListenOnly() && Service.isMuted(),
+  inAudio: Service.isConnected() && !Service.isEchoTest(),
+  listenOnly: Service.isConnected() && Service.isListenOnly(),
   disable: Service.isConnecting() || Service.isHangingUp(),
-  glow: Service.isTalking() && !Service.isMuted(),
+  talking: Service.isTalking() && !Service.isMuted(),
+  currentUser: Service.currentUser(),
   handleToggleMuteMicrophone: () => Service.toggleMuteMicrophone(),
-  handleJoinAudio: () => {
-    return Service.isConnected() ? Service.joinListenOnly() : mountModal(<AudioModalContainer />);
-  },
+  handleJoinAudio: () => (Service.isConnected() ? Service.joinListenOnly() : mountModal(<AudioModalContainer />)),
   handleLeaveAudio: () => Service.exitAudio(),
-}))(AudioControlsContainer));
+}))(AudioControlsContainer)));

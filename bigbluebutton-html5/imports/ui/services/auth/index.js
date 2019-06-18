@@ -215,7 +215,6 @@ class Auth {
 
         const selector = { meetingId: this.meetingID, userId: this.userID };
         const User = Users.findOne(selector);
-
         // Skip in case the user is not in the collection yet or is a dummy user
         if (!User || !('intId' in User)) {
           logger.info({ logCode: 'auth_service_resend_validateauthtoken' }, 're-send validateAuthToken for delayed authentication');
@@ -238,7 +237,6 @@ class Auth {
           setTimeout(() => resolve(true), 100);
         }
       });
-
       makeCall('validateAuthToken');
     });
   }
@@ -247,9 +245,9 @@ class Auth {
     let authURL = url;
     if (authURL.indexOf('sessionToken=') === -1) {
       if (authURL.indexOf('?') !== -1) {
-        authURL = authURL + '&sessionToken=' + this.sessionToken;
+        authURL = `${authURL}&sessionToken=${this.sessionToken}`;
       } else {
-        authURL= authURL + '?sessionToken=' + this.sessionToken;
+        authURL = `${authURL}?sessionToken=${this.sessionToken}`;
       }
     }
     return authURL;

@@ -56,21 +56,16 @@ export default withTracker(() => {
     },
   });
 
-  const breakouts = Service.getBreakouts();
   const currentUserId = Auth.userID;
   const { connectRecordingObserver, processOutsideToggleRecording } = Service;
-
-  const isExpanded = Session.get('isUserListOpen');
-
-  const amIModerator = () => {
-    const currentUser = Users.findOne({ userId: Auth.userID });
-    return mapUser(currentUser).isModerator;
-  };
+  const currentUser = Users.findOne({ userId: Auth.userID });
+  const openPanel = Session.get('openPanel');
+  const isExpanded = openPanel !== '';
+  const amIModerator = mapUser(currentUser).isModerator;
 
   return {
     amIModerator,
     isExpanded,
-    breakouts,
     currentUserId,
     processOutsideToggleRecording,
     connectRecordingObserver,
@@ -78,8 +73,6 @@ export default withTracker(() => {
     presentationTitle: meetingTitle,
     hasUnreadMessages: checkUnreadMessages(),
     isBreakoutRoom: meetingIsBreakout(),
-    getBreakoutByUser: Service.getBreakoutByUser,
-    currentBreakoutUser: Service.getBreakoutUserByUserId(Auth.userID),
     recordProps: meetingRecorded,
     toggleUserList: () => {
       Session.set('isUserListOpen', !isExpanded);

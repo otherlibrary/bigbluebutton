@@ -53,6 +53,10 @@ const intlMessages = defineMessages({
     id: 'app.submenu.application.ariaLanguageLabel',
     description: 'aria label for locale change section',
   },
+  currentValue: {
+    id: 'app.submenu.application.currentSize',
+    description: 'current value label',
+  },
   languageOptionLabel: {
     id: 'app.submenu.application.languageOptionLabel',
     description: 'default change language option when locales are available',
@@ -151,7 +155,20 @@ class ApplicationMenu extends BaseMenu {
 
   render() {
     const { availableLocales, intl } = this.props;
-    const { isLargestFontSize, isSmallestFontSize } = this.state;
+    const { isLargestFontSize, isSmallestFontSize, settings } = this.state;
+
+    // conversions can be found at http://pxtoem.com
+    const pixelPercentage = {
+      '12px': '75%',
+      // 14px is actually 87.5%, rounding up to show more friendly value
+      '14px': '90%',
+      '16px': '100%',
+      // 18px is actually 112.5%, rounding down to show more friendly value
+      '18px': '110%',
+      '20px': '125%',
+    };
+
+    const ariaValueLabel = intl.formatMessage(intlMessages.currentValue, { 0: `${pixelPercentage[settings.fontSize]}` });
 
     return (
       <div>
@@ -225,23 +242,22 @@ class ApplicationMenu extends BaseMenu {
           <div className={styles.row}>
             <div className={styles.col} aria-hidden="true">
               <div className={styles.formElement}>
-                <label className={styles.label}>
+                <label
+                  className={styles.label}
+                  htmlFor="langSelector"
+                  aria-label={intl.formatMessage(intlMessages.ariaLanguageLabel)}
+                >
                   {intl.formatMessage(intlMessages.languageLabel)}
                 </label>
               </div>
             </div>
             <div className={styles.col}>
-              <div
-                id="changeLangLabel"
-                aria-label={intl.formatMessage(intlMessages.ariaLanguageLabel)}
-              />
-              <label
-                aria-labelledby="changeLangLabel"
-                className={cx(styles.formElement, styles.pullContentRight)}
-              >
+              <span className={cx(styles.formElement, styles.pullContentRight)}>
                 {availableLocales && availableLocales.length > 0 ? (
                   <select
+                    id="langSelector"
                     defaultValue={this.state.settings.locale}
+                    lang={this.state.settings.locale}
                     className={styles.select}
                     onChange={this.handleSelectChange.bind(this, 'locale', availableLocales)}
                   >
@@ -253,7 +269,7 @@ class ApplicationMenu extends BaseMenu {
                     ))}
                   </select>
                 ) : null}
-              </label>
+              </span>
             </div>
           </div>
           <hr className={styles.separator} />
@@ -266,9 +282,9 @@ class ApplicationMenu extends BaseMenu {
               </div>
             </div>
             <div className={styles.col}>
-              <div className={cx(styles.formElement, styles.pullContentCenter)}>
+              <div aria-hidden className={cx(styles.formElement, styles.pullContentCenter)}>
                 <label className={cx(styles.label, styles.bold)}>
-                  {this.state.settings.fontSize}
+                  {`${pixelPercentage[this.state.settings.fontSize]}`}
                 </label>
               </div>
             </div>
@@ -283,6 +299,7 @@ class ApplicationMenu extends BaseMenu {
                       circle
                       hideLabel
                       label={intl.formatMessage(intlMessages.decreaseFontBtnLabel)}
+                      aria-label={`${intl.formatMessage(intlMessages.decreaseFontBtnLabel)}, ${ariaValueLabel}`}
                       disabled={isSmallestFontSize}
                     />
                   </div>
@@ -294,6 +311,7 @@ class ApplicationMenu extends BaseMenu {
                       circle
                       hideLabel
                       label={intl.formatMessage(intlMessages.increaseFontBtnLabel)}
+                      aria-label={`${intl.formatMessage(intlMessages.increaseFontBtnLabel)}, ${ariaValueLabel}`}
                       disabled={isLargestFontSize}
                     />
                   </div>

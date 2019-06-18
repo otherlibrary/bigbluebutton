@@ -1,5 +1,6 @@
 import React from 'react';
 import { withTracker } from 'meteor/react-meteor-data';
+import { Session } from 'meteor/session';
 import { withModalMounter } from '/imports/ui/components/modal/service';
 import { injectIntl, defineMessages } from 'react-intl';
 import _ from 'lodash';
@@ -7,6 +8,7 @@ import Breakouts from '/imports/api/breakouts';
 import { notify } from '/imports/ui/services/notification';
 import getFromUserSettings from '/imports/ui/services/users-settings';
 import VideoPreviewContainer from '/imports/ui/components/video-preview/container';
+import lockContextContainer from '/imports/ui/components/lock-viewers/context/container';
 import Service from './service';
 import AudioModalContainer from './audio-modal/container';
 
@@ -22,6 +24,10 @@ const intlMessages = defineMessages({
   leftAudio: {
     id: 'app.audioManager.leftAudio',
     description: 'Left audio toast message',
+  },
+  reconnectingAudio: {
+    id: 'app.audioManager.reconnectingAudio',
+    description: 'Reconnecting audio toast message',
   },
   genericError: {
     id: 'app.audioManager.genericError',
@@ -72,22 +78,25 @@ class AudioContainer extends React.Component {
 
 let didMountAutoJoin = false;
 
-export default withModalMounter(injectIntl(withTracker(({ mountModal, intl }) => {
+export default lockContextContainer(withModalMounter(injectIntl(withTracker(({ mountModal, intl, userLocks }) => {
   const APP_CONFIG = Meteor.settings.public.app;
   const KURENTO_CONFIG = Meteor.settings.public.kurento;
-
   const autoJoin = getFromUserSettings('autoJoin', APP_CONFIG.autoJoin);
-  const openAudioModal = mountModal.bind(
-    null,
-    <AudioModalContainer />,
-  );
+  const { userWebcam, userMic } = userLocks;
+  const openAudioModal = () => new Promise((resolve) => {
+    mountModal(<AudioModalContainer resolve={resolve} />);
+  });
+
   const openVideoPreviewModal = () => new Promise((resolve) => {
+    if (userWebcam) return resolve();
     mountModal(<VideoPreviewContainer resolve={resolve} />);
   });
-  if (Service.audioLocked() && Service.isConnected() && !Service.isListenOnly()) {
-    Service.exitAudio();
+  if (userMic
+    && Service.isConnected()
+    && !Service.isListenOnly()
+    && !Service.isMuted()) {
+    Service.toggleMuteMicrophone();
     notify(intl.formatMessage(intlMessages.reconectingAsListener), 'info', 'audio_on');
-    Service.joinListenOnly();
   }
 
   Breakouts.find().observeChanges({
@@ -113,6 +122,7 @@ export default withModalMounter(injectIntl(withTracker(({ mountModal, intl }) =>
       JOINED_AUDIO: intlMessages.joinedAudio,
       JOINED_ECHO: intlMessages.joinedEcho,
       LEFT_AUDIO: intlMessages.leftAudio,
+      RECONNECTING_AUDIO: intlMessages.reconnectingAudio,
     },
     error: {
       GENERIC_ERROR: intlMessages.genericError,
@@ -130,15 +140,15 @@ export default withModalMounter(injectIntl(withTracker(({ mountModal, intl }) =>
       Service.init(messages, intl);
       Service.changeOutputDevice(document.querySelector('#remote-media').sinkId);
       if (!autoJoin || didMountAutoJoin) return;
-
+      Session.set('audioModalIsOpen', true);
       const enableVideo = getFromUserSettings('enableVideo', KURENTO_CONFIG.enableVideo);
       const autoShareWebcam = getFromUserSettings('autoShareWebcam', KURENTO_CONFIG.autoShareWebcam);
       if (enableVideo && autoShareWebcam) {
-        openVideoPreviewModal().then(() => { openAudioModal(); didMountAutoJoin = true; });
+        openAudioModal().then(() => { openVideoPreviewModal(); didMountAutoJoin = true; });
       } else {
         openAudioModal();
         didMountAutoJoin = true;
       }
     },
   };
-})(AudioContainer)));
+})(AudioContainer))));
